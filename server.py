@@ -1,15 +1,9 @@
-# server.py
 from app import create_app
-from app.celery_app import celery
+from app.celery_app import make_celery, celery as celery_global
 
 app = create_app()
+celery = make_celery(app)
 
-# Tie Flask app context to Celery
-celery.conf.update(app.config)
-
-class ContextTask(celery.Task):
-    def __call__(self, *args, **kwargs):
-        with app.app_context():
-            return self.run(*args, **kwargs)
-
-celery.Task = ContextTask
+# Export celery instance globally so tasks can import it
+from app import celery_app
+celery_app.celery = celery

@@ -29,18 +29,17 @@ def upload_metadata(device_id):
     filename = metadata.get("filename")
     metadata_filename = f"{device_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_meta.json"
 
-    filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-    with open(filepath, 'rb') as f:
-        file_data = f.read()
-
+    # Just pass filenames and metadata to Celery task, which will do file I/O
     task_data = {
         'filename': filename,
         'metadata_filename': metadata_filename,
-        'data': file_data
+        # remove 'data' here, Celery task will read file from disk
     }
     metadata['device_id'] = device_id
+
     save_upload.delay(task_data, metadata)
     return 'Metadata queued for saving', 200
+
 
 @routes.route('/dashboard')
 def dashboard():
