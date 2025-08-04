@@ -1,9 +1,15 @@
-from app import create_app, db
+# server.py
+from app import create_app
+from app.celery_app import celery
 
 app = create_app()
 
-with app.app_context():
-    db.create_all()
+# Tie Flask app context to Celery
+celery.conf.update(app.config)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+class ContextTask(celery.Task):
+    def __call__(self, *args, **kwargs):
+        with app.app_context():
+            return self.run(*args, **kwargs)
+
+celery.Task = ContextTask
