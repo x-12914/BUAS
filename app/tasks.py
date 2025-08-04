@@ -1,11 +1,8 @@
 from .models import db, Upload
 from flask import current_app
 import json, os
-from datetime import datetime
-from app import create_app, make_celery
 
-app = create_app()
-celery = make_celery(app)
+from .celery_app import celery
 
 @celery.task()
 def save_upload(file_data, metadata):

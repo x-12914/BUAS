@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, render_template, send_from_directory, current_app, Response
 from .models import db, Upload
-from .tasks import save_upload
+from app.tasks import save_upload
 import os, json
 from datetime import datetime
 
