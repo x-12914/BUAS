@@ -1,6 +1,5 @@
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
+from . import db
+from datetime import datetime
 
 class Upload(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -11,4 +10,4 @@ class Upload(db.Model):
     end_time = db.Column(db.BigInteger)
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
-    timestamp = db.Column(db.DateTime, server_default=db.func.now())
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)

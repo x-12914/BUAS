@@ -1,9 +1,10 @@
 import os
 from celery import Celery
 
-celery = None  # global celery variable to be assigned after app creation
+celery = None  # Global variable, initialized later
 
 def make_celery(app):
+    global celery
     celery = Celery(
         app.import_name,
         broker=os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0"),

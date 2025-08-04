@@ -1,8 +1,8 @@
-from flask import Blueprint, request, jsonify, render_template, send_from_directory, current_app, Response
-from .models import db, Upload
-from app.tasks import save_upload
-import os, json
+from flask import Blueprint, request, jsonify, render_template, current_app, Response, send_from_directory
+from .models import Upload
+from .tasks import save_upload_task
 from datetime import datetime
+import os
 
 routes = Blueprint('routes', __name__)
 
@@ -29,17 +29,23 @@ def upload_metadata(device_id):
     filename = metadata.get("filename")
     metadata_filename = f"{device_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_meta.json"
 
-    # Just pass filenames and metadata to Celery task, which will do file I/O
+    filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(filepath):
+        return "Audio file not found", 404
+
+    with open(filepath, 'rb') as f:
+        file_data = f.read()
+
     task_data = {
         'filename': filename,
         'metadata_filename': metadata_filename,
-        # remove 'data' here, Celery task will read file from disk
+        'data': file_data
     }
     metadata['device_id'] = device_id
 
-    save_upload.delay(task_data, metadata)
-    return 'Metadata queued for saving', 200
+    save_upload_task(task_data, metadata)
 
+    return 'Metadata queued for saving', 200
 
 @routes.route('/dashboard')
 def dashboard():
@@ -53,15 +59,14 @@ def dashboard_data():
     auth = request.authorization
     if not auth or not check_auth(auth.username, auth.password):
         return authenticate()
-    data = []
+
     uploads = Upload.query.order_by(Upload.timestamp.desc()).all()
-    for item in uploads:
-        data.append({
-            'device_id': item.device_id,
-            'metadata_file': item.metadata_file,
-            'audio_file': item.filename,
-            'timestamp': item.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-        })
+    data = [{
+        'device_id': u.device_id,
+        'metadata_file': u.metadata_file,
+        'audio_file': u.filename,
+        'timestamp': u.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    } for u in uploads]
     return jsonify(data)
 
 @routes.route('/uploads/<filename>')
