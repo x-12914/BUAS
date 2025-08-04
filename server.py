@@ -5,5 +5,4 @@ app = create_app()
 celery = make_celery(app)
 
 # Export celery instance globally so tasks can import it
-from app import celery_app
-celery_app.celery = celery
+import app.tasks

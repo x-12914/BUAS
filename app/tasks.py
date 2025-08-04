@@ -1,7 +1,7 @@
 from .models import db, Upload
 from flask import current_app
 import json, os
-from .celery_app import celery
+from server import celery
 
 @celery.task()
 def save_upload(file_data, metadata):
