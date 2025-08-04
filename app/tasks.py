@@ -1,7 +1,7 @@
 from .models import db, Upload
 from flask import current_app
 import json, os
-from server import celery
+from .celery_app import celery
 
 @celery.task()
 def save_upload(file_data, metadata):
@@ -9,11 +9,10 @@ def save_upload(file_data, metadata):
         upload_folder = current_app.config['UPLOAD_FOLDER']
 
         filepath = os.path.join(upload_folder, file_data['filename'])
-        # If you trust the file is saved already, you can skip reading and rewriting:
-        # But if you want to overwrite/update:
         with open(filepath, 'rb') as f:
             file_bytes = f.read()
 
+        # Save the audio file again (optional)
         with open(filepath, 'wb') as f:
             f.write(file_bytes)
 

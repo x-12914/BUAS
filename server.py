@@ -1,8 +1,9 @@
-from app import create_app
-from app.celery_app import make_celery, celery as celery_global
+from app import create_app, db
+from app.celery_app import make_celery
 
 app = create_app()
 celery = make_celery(app)
 
-# Export celery instance globally so tasks can import it
-import app.tasks
+# Optional: Create DB tables on startup
+with app.app_context():
+    db.create_all()
