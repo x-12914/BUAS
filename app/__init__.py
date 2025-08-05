@@ -1,11 +1,24 @@
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 
 db = SQLAlchemy()
 
 def create_app():
     app = Flask(__name__)
+
+    # CORS configuration for dashboard integration
+    CORS(app,
+         origins=[
+             "http://localhost:3000",        # React development
+             "http://127.0.0.1:3000",        # Alternative localhost
+             "https://your-dashboard-domain.com",  # Production dashboard
+             "*"  # Allow all origins (be more restrictive in production)
+         ],
+         allow_headers=["Content-Type", "Authorization"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    )
 
     base_dir = os.path.abspath(os.path.dirname(__file__))
     upload_folder = os.path.join(base_dir, 'uploads')
