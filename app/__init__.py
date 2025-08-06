@@ -11,8 +11,12 @@ def create_app():
     # CORS configuration for dashboard integration
     CORS(app,
          origins=[
-             "http://localhost:3000",        # React development
-             "http://127.0.0.1:3000",        # Alternative localhost
+             "http://localhost:3000",              # React development
+             "http://127.0.0.1:3000",              # Alternative localhost
+             "http://143.244.133.125:3000",        # VPS frontend
+             "http://143.244.133.125:8000",        # VPS FastAPI server
+             "http://143.244.133.125",             # VPS base
+             "https://143.244.133.125",            # VPS HTTPS
              "https://your-dashboard-domain.com",  # Production dashboard
              "*"  # Allow all origins (be more restrictive in production)
          ],

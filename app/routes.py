@@ -174,3 +174,98 @@ def dashboard_data():
         for u in uploads
     ]
     return jsonify(data)
+
+
+# ========== PHONE ENDPOINTS (for dual backend architecture) ==========
+
+@routes.route('/api/register', methods=['POST'])
+def register_phone():
+    """Register a new phone device"""
+    data = request.get_json()
+    phone_id = data.get('phone_id')
+    device_name = data.get('device_name')
+    
+    if not phone_id:
+        return jsonify({'error': 'phone_id is required'}), 400
+    
+    # For now, just acknowledge registration
+    # In a full implementation, you'd store device info in database
+    return jsonify({
+        'status': 'success',
+        'message': f'Phone {phone_id} registered successfully',
+        'phone_id': phone_id,
+        'device_name': device_name,
+        'timestamp': datetime.now().isoformat()
+    }), 200
+
+
+@routes.route('/api/location', methods=['POST'])
+def update_location():
+    """Update phone location"""
+    data = request.get_json()
+    phone_id = data.get('phone_id')
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
+    timestamp = data.get('timestamp')
+    
+    if not phone_id or latitude is None or longitude is None:
+        return jsonify({'error': 'phone_id, latitude, and longitude are required'}), 400
+    
+    # For now, just acknowledge location update
+    # In a full implementation, you'd store location in database
+    return jsonify({
+        'status': 'success',
+        'message': f'Location updated for phone {phone_id}',
+        'phone_id': phone_id,
+        'latitude': latitude,
+        'longitude': longitude,
+        'timestamp': timestamp or datetime.now().isoformat()
+    }), 200
+
+
+@routes.route('/api/upload-audio', methods=['POST'])
+def upload_audio_endpoint():
+    """Upload audio file with authentication"""
+    auth = request.authorization
+    if not auth or not check_auth(auth.username, auth.password):
+        return authenticate()
+    
+    phone_id = request.form.get('phone_id')
+    audio_file = request.files.get('audio')
+    
+    if not phone_id:
+        return jsonify({'error': 'phone_id is required'}), 400
+    
+    if not audio_file:
+        return jsonify({'error': 'audio file is required'}), 400
+    
+    # Save the audio file
+    filename = f"{phone_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{audio_file.filename}"
+    filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+    
+    # Ensure upload directory exists
+    os.makedirs(current_app.config['UPLOAD_FOLDER'], exist_ok=True)
+    
+    audio_file.save(filepath)
+    
+    # Create upload record in database
+    upload = Upload(
+        device_id=phone_id,
+        filename=filename,
+        metadata_file='',  # Will be updated when metadata is uploaded
+        latitude=None,  # Could be extracted from metadata later
+        longitude=None
+    )
+    
+    from . import db
+    db.session.add(upload)
+    db.session.commit()
+    
+    return jsonify({
+        'status': 'success',
+        'message': 'Audio uploaded successfully',
+        'phone_id': phone_id,
+        'filename': filename,
+        'file_size': len(audio_file.read()),
+        'timestamp': datetime.now().isoformat()
+    }), 200
