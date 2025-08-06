@@ -1,4 +1,3 @@
-# Additional routes.py additions for dashboard compatibility
 from flask import Blueprint, request, jsonify, render_template, current_app, Response, send_from_directory
 from .models import Upload
 from .tasks import save_upload_task
@@ -16,7 +15,6 @@ def authenticate():
     return Response("Unauthorized", 401, {"WWW-Authenticate": 'Basic realm="Login Required"'})
 
 
-# Add OPTIONS handler for CORS preflight requests
 @routes.before_request
 def handle_preflight():
     if request.method == "OPTIONS":
@@ -27,8 +25,9 @@ def handle_preflight():
         return response
 
 
-# Existing routes stay the same...
-@routes.route('/upload/audio/<device_id>', methods=['POST'])
+# ========== API ROUTES ==========
+
+@routes.route('/api/upload/audio/<device_id>', methods=['POST'])
 def upload_audio(device_id):
     file = request.files.get('file')
     if not file:
@@ -40,7 +39,7 @@ def upload_audio(device_id):
     return jsonify({'filename': filename}), 200
 
 
-@routes.route('/upload/metadata/<device_id>', methods=['POST'])
+@routes.route('/api/upload/metadata/<device_id>', methods=['POST'])
 def upload_metadata(device_id):
     metadata = request.get_json()
     filename = metadata.get("filename")
@@ -65,47 +64,13 @@ def upload_metadata(device_id):
     return 'Metadata queued for saving', 200
 
 
-@routes.route('/dashboard')
-def dashboard():
-    auth = request.authorization
-    if not auth or not check_auth(auth.username, auth.password):
-        return authenticate()
-    return render_template('dashboard.html')
-
-
-@routes.route('/dashboard/data')
-def dashboard_data():
-    auth = request.authorization
-    if not auth or not check_auth(auth.username, auth.password):
-        return authenticate()
-
-    uploads = Upload.query.order_by(Upload.timestamp.desc()).all()
-    data = [{
-        'device_id': u.device_id,
-        'metadata_file': u.metadata_file,
-        'audio_file': u.filename,
-        'timestamp': u.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-    } for u in uploads]
-    return jsonify(data)
-
-
-@routes.route('/uploads/<filename>')
-def download_file(filename):
-    return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
-
-
-# NEW ROUTES for dashboard compatibility (optional - if you want to expand later)
-
 @routes.route('/api/dashboard-data')
 def api_dashboard_data():
-    """Dashboard-compatible endpoint (maps to /dashboard/data)"""
     auth = request.authorization
     if not auth or not check_auth(auth.username, auth.password):
         return authenticate()
 
     uploads = Upload.query.order_by(Upload.timestamp.desc()).all()
-
-    # Transform to dashboard format
     device_map = {}
     for upload in uploads:
         device_id = upload.device_id
@@ -145,11 +110,40 @@ def api_dashboard_data():
     })
 
 
-@routes.route('/health')
+@routes.route('/api/uploads/<filename>')
+def download_file(filename):
+    return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
+
+
+@routes.route('/api/health')
 def health_check():
-    """Health check for dashboard"""
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
         'version': '1.0.0'
     })
+
+
+# Optional legacy dashboard views (if accessed directly)
+@routes.route('/dashboard')
+def dashboard():
+    auth = request.authorization
+    if not auth or not check_auth(auth.username, auth.password):
+        return authenticate()
+    return render_template('dashboard.html')
+
+
+@routes.route('/dashboard/data')
+def dashboard_data():
+    auth = request.authorization
+    if not auth or not check_auth(auth.username, auth.password):
+        return authenticate()
+
+    uploads = Upload.query.order_by(Upload.timestamp.desc()).all()
+    data = [{
+        'device_id': u.device_id,
+        'metadata_file': u.metadata_file,
+        'audio_file': u.filename,
+        'timestamp': u.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    } for u in uploads]
+    return jsonify(data)
