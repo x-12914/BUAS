@@ -25,7 +25,7 @@ def handle_preflight():
         return response
 
 
-# ========== API ROUTES ==========
+# ===================== API ROUTES =====================
 
 @routes.route('/api/upload/audio/<device_id>', methods=['POST'])
 def upload_audio(device_id):
@@ -64,6 +64,28 @@ def upload_metadata(device_id):
     return 'Metadata queued for saving', 200
 
 
+@routes.route('/api/audio/<device_id>/latest', methods=['GET'])
+def latest_audio(device_id):
+    auth = request.authorization
+    if not auth or not check_auth(auth.username, auth.password):
+        return authenticate()
+
+    latest = (
+        Upload.query
+        .filter_by(device_id=device_id)
+        .order_by(Upload.timestamp.desc())
+        .first()
+    )
+
+    if not latest:
+        return jsonify({'error': 'No recordings found'}), 404
+
+    return jsonify({
+        'filename': latest.filename,
+        'url': f"/api/uploads/{latest.filename}"
+    })
+
+
 @routes.route('/api/dashboard-data')
 def api_dashboard_data():
     auth = request.authorization
@@ -72,6 +94,7 @@ def api_dashboard_data():
 
     uploads = Upload.query.order_by(Upload.timestamp.desc()).all()
     device_map = {}
+
     for upload in uploads:
         device_id = upload.device_id
         if device_id not in device_map:
@@ -84,7 +107,7 @@ def api_dashboard_data():
                 },
                 'session_start': None,
                 'current_session_id': None,
-                'latest_audio': f'/uploads/{upload.filename}',
+                'latest_audio': f'/api/uploads/{upload.filename}',
                 'uploads': []
             }
         device_map[device_id]['uploads'].append({
@@ -124,7 +147,8 @@ def health_check():
     })
 
 
-# Optional legacy dashboard views (if accessed directly)
+# ========== OPTIONAL LEGACY ROUTES ==========
+
 @routes.route('/dashboard')
 def dashboard():
     auth = request.authorization
@@ -140,10 +164,13 @@ def dashboard_data():
         return authenticate()
 
     uploads = Upload.query.order_by(Upload.timestamp.desc()).all()
-    data = [{
-        'device_id': u.device_id,
-        'metadata_file': u.metadata_file,
-        'audio_file': u.filename,
-        'timestamp': u.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-    } for u in uploads]
+    data = [
+        {
+            'device_id': u.device_id,
+            'metadata_file': u.metadata_file,
+            'audio_file': u.filename,
+            'timestamp': u.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        }
+        for u in uploads
+    ]
     return jsonify(data)
