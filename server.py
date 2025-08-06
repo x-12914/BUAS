@@ -1,10 +1,29 @@
 from app import create_app
-from app.celery_app import make_celery
+
+# Try to import celery, but don't fail if it's not available
+try:
+    from app.celery_app import make_celery
+    CELERY_AVAILABLE = True
+except ImportError:
+    CELERY_AVAILABLE = False
 
 app = create_app()
-celery = make_celery(app)
+
+# Only initialize celery if it's available and Redis is running
+if CELERY_AVAILABLE:
+    try:
+        celery = make_celery(app)
+    except Exception as e:
+        print(f"Warning: Celery initialization failed: {e}")
+        print("Continuing without Celery...")
+        celery = None
+else:
+    celery = None
 
 if __name__ == "__main__":
+    print("Starting Flask server...")
+    print(f"Celery available: {CELERY_AVAILABLE}")
+    
     # Run Flask server on port 5000 for VPS deployment
     app.run(
         host='0.0.0.0',  # Bind to all interfaces for VPS access

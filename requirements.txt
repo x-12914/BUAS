@@ -3,3 +3,5 @@ flask_sqlalchemy
 redis
 celery
 flask-cors
+requests
+python-dotenv
