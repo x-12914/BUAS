@@ -3,6 +3,7 @@ from app import create_app
 # Try to import celery, but don't fail if it's not available
 try:
     from app.celery_app import make_celery
+
     CELERY_AVAILABLE = True
 except ImportError:
     CELERY_AVAILABLE = False
@@ -20,13 +21,15 @@ if CELERY_AVAILABLE:
 else:
     celery = None
 
+# Only run this block if the script is run directly (not by Gunicorn)
 if __name__ == "__main__":
     print("Starting Flask server...")
     print(f"Celery available: {CELERY_AVAILABLE}")
-    
-    # Run Flask server on port 5000 for VPS deployment
+
+    # Run Flask development server
     app.run(
         host='0.0.0.0',  # Bind to all interfaces for VPS access
-        port=5000,       # Flask server port
-        debug=False, use_reloader=False# Change to False in production
+        port=5000,  # Flask server port
+        debug=False,
+        use_reloader=False
     )
