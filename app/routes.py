@@ -131,10 +131,11 @@ def latest_audio(device_id):
 @routes.route('/api/dashboard-data')
 def api_dashboard_data():
     try:
-        # Make authentication optional for testing
+        # Check authentication if provided
         auth = request.authorization
-        if auth and not check_auth(auth.username, auth.password):
-            return authenticate()
+        if auth:
+            if not check_auth(auth.username, auth.password):
+                return authenticate()
 
         # Try to get data from database
         try:
@@ -158,13 +159,26 @@ def api_dashboard_data():
                     'session_start': None,
                     'current_session_id': None,
                     'latest_audio': f'/api/uploads/{upload.filename}',
+                    'last_seen': upload.timestamp.isoformat(),
+                    'latest_timestamp': upload.timestamp,  # Keep track for comparison
                     'uploads': []
                 }
+            else:
+                # Update last_seen if this upload is more recent
+                if upload.timestamp > device_map[device_id]['latest_timestamp']:
+                    device_map[device_id]['last_seen'] = upload.timestamp.isoformat()
+                    device_map[device_id]['latest_audio'] = f'/api/uploads/{upload.filename}'
+                    device_map[device_id]['latest_timestamp'] = upload.timestamp
+            
             device_map[device_id]['uploads'].append({
                 'filename': upload.filename,
                 'metadata_file': getattr(upload, 'metadata_file', ''),
                 'timestamp': upload.timestamp.isoformat()
             })
+
+        # Clean up temporary timestamp field
+        for device in device_map.values():
+            del device['latest_timestamp']
 
         users = list(device_map.values())
 
