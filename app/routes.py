@@ -60,12 +60,13 @@ def upload_audio(device_id):
             upload = Upload(
                 device_id=device_id,
                 filename=filename,
-                metadata_file='',
+                metadata_file=None,
                 latitude=None,
                 longitude=None
             )
             db.session.add(upload)
             db.session.commit()
+            print(f"Successfully saved to database: {device_id} - {filename}")
         except Exception as db_error:
             print(f"Database error (continuing anyway): {db_error}")
         
@@ -172,7 +173,7 @@ def api_dashboard_data():
             
             device_map[device_id]['uploads'].append({
                 'filename': upload.filename,
-                'metadata_file': getattr(upload, 'metadata_file', ''),
+                'metadata_file': getattr(upload, 'metadata_file', None) or '',
                 'timestamp': upload.timestamp.isoformat()
             })
 
